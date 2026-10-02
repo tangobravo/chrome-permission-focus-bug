@@ -31,6 +31,7 @@
       color: #fff;
     }
     .state.on { background: #43a047; }
+    .state.off { background: #9e9e9e; }
     .state span { display: block; font-weight: 400; font-size: 13px; margin-top: 4px; }
     .buttons { display: flex; gap: 8px; margin-bottom: 12px; }
     button {
@@ -42,7 +43,7 @@
       background: #1e88e5;
       color: #fff;
     }
-    button.secondary { flex: 0 0 auto; background: #757575; }
+    button.secondary { background: #757575; }
     #log {
       height: 50vh;
       overflow-y: auto;
@@ -56,6 +57,7 @@
     .event { color: #ffd54f; }
     .poll { color: #9e9e9e; }
     .perm { color: #4fc3f7; }
+    .motion { color: #ce93d8; }
   </style>
 </head>
 <body>
@@ -66,10 +68,15 @@
   <div class="states">
     <div id="visibility" class="state">Visibility<span id="visibility-value">-</span></div>
     <div id="focus" class="state">Focus<span id="focus-value">-</span></div>
+    <div id="motion" class="state off">Motion<span id="motion-value">off</span></div>
   </div>
 
   <div class="buttons">
     <button id="geo">Request geolocation</button>
+    <button id="motion-toggle">Enable motion</button>
+  </div>
+
+  <div class="buttons">
     <button id="poll-toggle" class="secondary">Polling: on</button>
     <button id="clear" class="secondary">Clear log</button>
   </div>
@@ -124,6 +131,62 @@
         pollId = setInterval(poll, 1000);
       }
       pollToggle.textContent = `Polling: ${pollId ? 'on' : 'off'}`;
+    });
+
+    let motionCount = 0;
+    let motionRate = 0;
+    let motionId = null;
+    const motionToggle = document.getElementById('motion-toggle');
+
+    function onMotion() {
+      motionCount++;
+    }
+
+    function measureMotion() {
+      const rate = motionCount;
+      motionCount = 0;
+      if ((rate > 0) !== (motionRate > 0)) {
+        const s = render();
+        log('motion', `devicemotion ${rate > 0 ? 'started' : 'stopped'} (${rate}/s) -> visibilityState=${s.visibility} hasFocus()=${s.hasFocus}`);
+      }
+      motionRate = rate;
+      document.getElementById('motion').classList.toggle('on', rate > 0);
+      document.getElementById('motion-value').textContent = `${rate}/s`;
+    }
+
+    async function enableMotion() {
+      // iOS needs explicit permission; Android Chrome doesn't have this method
+      if (typeof DeviceMotionEvent !== 'undefined' && DeviceMotionEvent.requestPermission) {
+        try {
+          const result = await DeviceMotionEvent.requestPermission();
+          log('perm', `DeviceMotionEvent.requestPermission -> ${result}`);
+        } catch (err) {
+          log('perm', `DeviceMotionEvent.requestPermission failed: ${err.message}`);
+        }
+      }
+      window.addEventListener('devicemotion', onMotion);
+      motionId = setInterval(measureMotion, 1000);
+      document.getElementById('motion').classList.remove('off');
+      document.getElementById('motion-value').textContent = '0/s';
+      motionToggle.textContent = 'Disable motion';
+      log('motion', `devicemotion listener added (userActivation.hasBeenActive=${navigator.userActivation?.hasBeenActive})`);
+    }
+
+    function disableMotion() {
+      window.removeEventListener('devicemotion', onMotion);
+      clearInterval(motionId);
+      motionId = null;
+      motionCount = motionRate = 0;
+      document.getElementById('motion').classList.remove('on');
+      document.getElementById('motion').classList.add('off');
+      document.getElementById('motion-value').textContent = 'off';
+      motionToggle.textContent = 'Enable motion';
+      log('motion', 'devicemotion listener removed');
+    }
+
+    motionToggle.addEventListener('click', () => {
+      if (motionId) disableMotion();
+      else enableMotion();
     });
 
     document.getElementById('geo').addEventListener('click', () => {
