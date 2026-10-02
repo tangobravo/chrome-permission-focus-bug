@@ -10,15 +10,14 @@ Because Chrome only delivers `devicemotion` events to a focused document, motion
 - **Focus**: `document.hasFocus()`, green when `true`
 - **Motion**: `devicemotion` events per second; grey when the listener is off, red when it's on but no events are arriving, green when events are arriving
 
-State updates on `focus`, `blur` and `visibilitychange` events, and on a 1s poll of the getters, which you can switch off. Every event and poll is written to the log with a timestamp.
+State updates on `focus`, `blur` and `visibilitychange` events. Every event is written to the log with a timestamp. **Polling** (off by default) also reads the getters every second and logs each reading, so you can check that the event listeners aren't missing a change.
 
 ## Reproducing
 
 1. Open the page in Chrome on Android.
 2. Tap **Enable motion** and wait for the Motion box to turn green.
-3. Optionally, turn **Polling** off so the log only shows events.
-4. Tap **Request geolocation**, then allow or block the prompt.
-5. Without touching the page, watch the Focus and Motion boxes and the log.
+3. Tap **Request geolocation**, then allow or block the prompt.
+4. Without touching the page, watch the Focus and Motion boxes and the log.
 
 **Expected:** focus returns and motion events resume once the prompt closes.
 
