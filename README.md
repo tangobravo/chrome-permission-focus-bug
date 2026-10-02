@@ -2,7 +2,10 @@
 
 A static test page to reproduce a Chrome on Android bug: after a permission prompt is dismissed, `document.hasFocus()` doesn't return to `true` until the page is tapped again.
 
-Because Chrome only delivers `devicemotion` events to a focused document, motion data also stops after a permission prompt. For example, a gyro-driven AR page on a camera background loses its motion data when the camera permission prompt is shown.
+Since Chrome 153, sensors are suspended while the page is unfocused, so `devicemotion` events also stop after a permission prompt. For example, a gyro-driven AR page on a camera background loses its motion data when the camera permission prompt is shown.
+
+- **Chromium issue:** https://issues.chromium.org/issues/568009418
+- **Demo:** https://tangobravo.github.io/chrome-permission-focus-bug/
 
 ## What the page shows
 
