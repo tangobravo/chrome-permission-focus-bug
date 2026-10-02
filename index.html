@@ -13,7 +13,7 @@
       background: #fff;
       color: #111;
     }
-    .controls { max-width: 480px; }
+    .controls { max-width: 480px; margin: 0 auto; }
     h1 { font-size: 18px; margin: 0 0 12px; }
     p { font-size: 14px; margin: 0 0 12px; color: #444; }
     .states {
@@ -65,15 +65,15 @@
   <h1>Permission prompt focus test</h1>
   <p>Tap "Request geolocation", respond to the prompt, then watch whether focus returns without another tap.</p>
 
+  <div class="buttons">
+    <button id="geo">Request geolocation</button>
+    <button id="motion-toggle">Enable motion</button>
+  </div>
+
   <div class="states">
     <div id="visibility" class="state">Visibility<span id="visibility-value">-</span></div>
     <div id="focus" class="state">Focus<span id="focus-value">-</span></div>
     <div id="motion" class="state off">Motion<span id="motion-value">off</span></div>
-  </div>
-
-  <div class="buttons">
-    <button id="geo">Request geolocation</button>
-    <button id="motion-toggle">Enable motion</button>
   </div>
 
   <div class="buttons">
