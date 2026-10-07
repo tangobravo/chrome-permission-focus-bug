@@ -19,7 +19,7 @@ State updates on `focus`, `blur` and `visibilitychange` events. Every event is w
 
 1. Open the page in Chrome on Android.
 2. Tap **Enable motion** and wait for the Motion box to turn green.
-3. Tap **Request geolocation**, then allow or block the prompt.
+3. Tap **Request geolocation**. After a 5 second countdown the prompt appears; allow or block it.
 4. Without touching the page, watch the Focus and Motion boxes and the log.
 
 **Expected:** focus returns and motion events resume once the prompt closes.

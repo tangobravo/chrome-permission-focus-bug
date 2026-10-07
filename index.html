@@ -44,6 +44,16 @@
       color: #fff;
     }
     button.secondary { background: #757575; }
+    button:disabled { opacity: 0.6; }
+    input {
+      display: block;
+      width: 100%;
+      margin-bottom: 12px;
+      padding: 12px;
+      font-size: 16px;
+      border: 1px solid #bdbdbd;
+      border-radius: 8px;
+    }
     #log {
       height: 50vh;
       overflow-y: auto;
@@ -80,6 +90,8 @@
     <button id="poll-toggle" class="secondary">Polling: off</button>
     <button id="clear" class="secondary">Clear log</button>
   </div>
+
+  <input id="text" type="text" placeholder="Tap here to type while the prompt opens">
   </div>
 
   <div id="log"></div>
@@ -115,6 +127,10 @@
     window.addEventListener('focus', onEvent);
     window.addEventListener('blur', onEvent);
     document.addEventListener('visibilitychange', onEvent);
+
+    const textInput = document.getElementById('text');
+    textInput.addEventListener('focus', () => log('event', 'text input focus'));
+    textInput.addEventListener('blur', () => log('event', 'text input blur'));
 
     function poll() {
       const s = render();
@@ -189,13 +205,31 @@
       else enableMotion();
     });
 
-    document.getElementById('geo').addEventListener('click', () => {
-      log('perm', 'requesting geolocation');
-      navigator.geolocation.getCurrentPosition(
-        () => log('perm', 'geolocation success'),
-        (err) => log('perm', `geolocation error ${err.code}: ${err.message}`),
-        { maximumAge: 0, timeout: 30000 }
-      );
+    const geoButton = document.getElementById('geo');
+    const geoDelay = 5;
+
+    geoButton.addEventListener('click', () => {
+      geoButton.disabled = true;
+      log('perm', `requesting geolocation in ${geoDelay}s`);
+      let remaining = geoDelay;
+      geoButton.textContent = `Requesting in ${remaining}s`;
+      const countdownId = setInterval(() => {
+        remaining--;
+        if (remaining > 0) {
+          geoButton.textContent = `Requesting in ${remaining}s`;
+          return;
+        }
+        clearInterval(countdownId);
+        geoButton.disabled = false;
+        geoButton.textContent = 'Request geolocation';
+        const s = render();
+        log('perm', `requesting geolocation -> visibilityState=${s.visibility} hasFocus()=${s.hasFocus}`);
+        navigator.geolocation.getCurrentPosition(
+          () => log('perm', 'geolocation success'),
+          (err) => log('perm', `geolocation error ${err.code}: ${err.message}`),
+          { maximumAge: 0, timeout: 30000 }
+        );
+      }, 1000);
     });
 
     document.getElementById('clear').addEventListener('click', () => {
