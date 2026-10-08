@@ -6,14 +6,22 @@
   <title>Permission Prompt Focus Test</title>
   <style>
     * { box-sizing: border-box; }
+    /* Fill the window: controls at the top, log takes the remaining space and
+       scrolls. The log's min-height makes the document scroll instead on very
+       small screens (e.g. phone landscape). The bottom padding leaves room for
+       the fixed footer, so it never covers the log even when scrolled. */
     body {
       margin: 0;
-      padding: 16px;
+      padding: 16px 16px calc(40px + env(safe-area-inset-bottom));
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
       font-family: system-ui, sans-serif;
       background: #fff;
       color: #111;
     }
-    .controls { max-width: 480px; margin: 0 auto; }
+    .controls { flex-shrink: 0; width: 100%; max-width: 480px; margin: 0 auto; }
     h1 { font-size: 18px; margin: 0 0 12px; }
     p { font-size: 14px; margin: 0 0 12px; color: #444; }
     .states {
@@ -55,7 +63,9 @@
       border-radius: 8px;
     }
     #log {
-      height: 50vh;
+      /* Zero basis so log content never grows the page; it scrolls instead */
+      flex: 1 1 0;
+      min-height: 150px;
       overflow-y: auto;
       padding: 8px;
       background: #111;
@@ -68,6 +78,21 @@
     .poll { color: #9e9e9e; }
     .perm { color: #4fc3f7; }
     .motion { color: #ce93d8; }
+    .footer {
+      position: fixed;
+      left: calc(16px + env(safe-area-inset-left));
+      bottom: calc(8px + env(safe-area-inset-bottom));
+      display: flex;
+      gap: 4px;
+      z-index: 1;
+    }
+    .footer .state {
+      flex: 0 0 auto;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .footer .state span { display: inline; margin: 0 0 0 4px; font-size: 12px; }
   </style>
 </head>
 <body>
@@ -81,12 +106,13 @@
   </div>
 
   <div class="states">
-    <div id="visibility" class="state">Visibility<span id="visibility-value">-</span></div>
-    <div id="focus" class="state">Focus<span id="focus-value">-</span></div>
-    <div id="motion" class="state off">Motion<span id="motion-value">off</span></div>
+    <div class="state" data-state="visibility">Visibility<span>-</span></div>
+    <div class="state" data-state="focus">Focus<span>-</span></div>
+    <div class="state off" data-state="motion">Motion<span>off</span></div>
   </div>
 
   <div class="buttons">
+    <button id="delay-toggle" class="secondary">Delay: off</button>
     <button id="poll-toggle" class="secondary">Polling: off</button>
     <button id="clear" class="secondary">Clear log</button>
   </div>
@@ -95,6 +121,12 @@
   </div>
 
   <div id="log"></div>
+
+  <div class="footer">
+    <div class="state" data-state="visibility">Vis<span>-</span></div>
+    <div class="state" data-state="focus">Focus<span>-</span></div>
+    <div class="state off" data-state="motion">Motion<span>off</span></div>
+  </div>
 
   <script>
     const logEl = document.getElementById('log');
@@ -109,13 +141,21 @@
       logEl.scrollTop = logEl.scrollHeight;
     }
 
+    // Updates both the main state box and the footer pill.
+    // status: 'on' (green), 'off' (grey) or anything else (red)
+    function setState(name, status, text) {
+      document.querySelectorAll(`[data-state="${name}"]`).forEach((el) => {
+        el.classList.toggle('on', status === 'on');
+        el.classList.toggle('off', status === 'off');
+        el.querySelector('span').textContent = text;
+      });
+    }
+
     function render() {
       const visible = document.visibilityState === 'visible';
       const focused = document.hasFocus();
-      document.getElementById('visibility').classList.toggle('on', visible);
-      document.getElementById('visibility-value').textContent = document.visibilityState;
-      document.getElementById('focus').classList.toggle('on', focused);
-      document.getElementById('focus-value').textContent = String(focused);
+      setState('visibility', visible ? 'on' : 'red', document.visibilityState);
+      setState('focus', focused ? 'on' : 'red', String(focused));
       return { visibility: document.visibilityState, hasFocus: focused };
     }
 
@@ -166,8 +206,7 @@
         log('motion', `devicemotion ${rate > 0 ? 'started' : 'stopped'} (${rate}/s) -> visibilityState=${s.visibility} hasFocus()=${s.hasFocus}`);
       }
       motionRate = rate;
-      document.getElementById('motion').classList.toggle('on', rate > 0);
-      document.getElementById('motion-value').textContent = `${rate}/s`;
+      setState('motion', rate > 0 ? 'on' : 'red', `${rate}/s`);
     }
 
     async function enableMotion() {
@@ -182,8 +221,7 @@
       }
       window.addEventListener('devicemotion', onMotion);
       motionId = setInterval(measureMotion, 1000);
-      document.getElementById('motion').classList.remove('off');
-      document.getElementById('motion-value').textContent = '0/s';
+      setState('motion', 'red', '0/s');
       motionToggle.textContent = 'Disable motion';
       log('motion', `devicemotion listener added (userActivation.hasBeenActive=${navigator.userActivation?.hasBeenActive})`);
     }
@@ -193,9 +231,7 @@
       clearInterval(motionId);
       motionId = null;
       motionCount = motionRate = 0;
-      document.getElementById('motion').classList.remove('on');
-      document.getElementById('motion').classList.add('off');
-      document.getElementById('motion-value').textContent = 'off';
+      setState('motion', 'off', 'off');
       motionToggle.textContent = 'Enable motion';
       log('motion', 'devicemotion listener removed');
     }
@@ -206,9 +242,30 @@
     });
 
     const geoButton = document.getElementById('geo');
+    const delayToggle = document.getElementById('delay-toggle');
     const geoDelay = 5;
+    let delayGeo = false;
+
+    delayToggle.addEventListener('click', () => {
+      delayGeo = !delayGeo;
+      delayToggle.textContent = `Delay: ${delayGeo ? `${geoDelay}s` : 'off'}`;
+    });
+
+    function requestGeolocation() {
+      const s = render();
+      log('perm', `requesting geolocation -> visibilityState=${s.visibility} hasFocus()=${s.hasFocus} userActivation.isActive=${navigator.userActivation?.isActive}`);
+      navigator.geolocation.getCurrentPosition(
+        () => log('perm', 'geolocation success'),
+        (err) => log('perm', `geolocation error ${err.code}: ${err.message}`),
+        { maximumAge: 0, timeout: 30000 }
+      );
+    }
 
     geoButton.addEventListener('click', () => {
+      if (!delayGeo) {
+        requestGeolocation();
+        return;
+      }
       geoButton.disabled = true;
       log('perm', `requesting geolocation in ${geoDelay}s`);
       let remaining = geoDelay;
@@ -222,13 +279,7 @@
         clearInterval(countdownId);
         geoButton.disabled = false;
         geoButton.textContent = 'Request geolocation';
-        const s = render();
-        log('perm', `requesting geolocation -> visibilityState=${s.visibility} hasFocus()=${s.hasFocus}`);
-        navigator.geolocation.getCurrentPosition(
-          () => log('perm', 'geolocation success'),
-          (err) => log('perm', `geolocation error ${err.code}: ${err.message}`),
-          { maximumAge: 0, timeout: 30000 }
-        );
+        requestGeolocation();
       }, 1000);
     });
 

@@ -15,11 +15,13 @@ Since Chrome 153, sensors are suspended while the page is unfocused, so `devicem
 
 State updates on `focus`, `blur` and `visibilitychange` events. Every event is written to the log with a timestamp. **Polling** (off by default) also reads the getters every second and logs each reading, so you can check that the event listeners aren't missing a change.
 
+**Delay** (off by default) waits 5 seconds after the tap before requesting geolocation. That gives you time to interact with other parts of the page before the prompt appears, and makes the request outside of user activation, which Chrome may show with a quieter permission UI.
+
 ## Reproducing
 
 1. Open the page in Chrome on Android.
 2. Tap **Enable motion** and wait for the Motion box to turn green.
-3. Tap **Request geolocation**. After a 5 second countdown the prompt appears; allow or block it.
+3. Tap **Request geolocation**, then allow or block the prompt.
 4. Without touching the page, watch the Focus and Motion boxes and the log.
 
 **Expected:** focus returns and motion events resume once the prompt closes.
